@@ -31,6 +31,8 @@ KIALI_OPERATOR_BRANCH="${KIALI_OPERATOR_BRANCH:-master}"
 LOGS_SUBDIR="mazz-basement-tests-$(date +'%Y-%m-%d_%H-%M-%S')"
 LOGS_LOCAL="/home/jmazzite/source/mazz-basement/${LOGS_SUBDIR}"
 LOGS_GITHUB="https://github.com/jmazzitelli/mazz-basement/tree/master/${LOGS_SUBDIR}"
+LOGS_LOCAL_RESULTS="${LOGS_LOCAL}/results.log"
+LOGS_GITHUB_RESULTS="https://github.com/jmazzitelli/mazz-basement/tree/master/${LOGS_SUBDIR}/results.log"
 
 # the freenode IRC room where notifications are to be sent
 IRC_ROOM="${IRC_ROOM:-kiali}"
@@ -45,6 +47,8 @@ KIALI_OPERATOR_BRANCH=$KIALI_OPERATOR_BRANCH
 LOGS_SUBDIR=$LOGS_SUBDIR
 LOGS_LOCAL=$LOGS_LOCAL
 LOGS_GITHUB=$LOGS_GITHUB
+LOGS_LOCAL_RESULTS=$LOGS_LOCAL_RESULTS
+LOGS_GITHUB_RESULTS=$LOGS_GITHUB_RESULTS
 IRC_ROOM=$IRC_ROOM
 === CRON JOB SETTINGS ===
 EOM
@@ -71,7 +75,7 @@ $OC login -u kubeadmin -p $(cat $ID/auth/kubeadmin-password) https://api.ocp4.lo
 mkdir -p "${LOGS_LOCAL}"
 
 echo "Running the tests - logs are going here: ${LOGS_LOCAL}"
-hack/run-molecule-tests.sh --client-exe "$OC" --color false --test-logs-dir "${LOGS_LOCAL}" > "${LOGS_LOCAL}/results.log"
+hack/run-molecule-tests.sh --client-exe "$OC" --color false --test-logs-dir "${LOGS_LOCAL}" > "${LOGS_LOCAL_RESULTS}"
 
 echo "Committing the logs to github: ${LOGS_GITHUB}"
 cd ${LOGS_LOCAL}
@@ -79,13 +83,21 @@ git add -A
 git commit -m "Test results for ${LOGS_SUBDIR}"
 git push
 
-echo "Sending IRC notification: #${IRC_ROOM}"
+# determine what message to send to IRC based on test results
+if grep FAILURE "${LOGS_LOCAL_RESULTS}"; then
+  irc_msg="a FAILURE occurred in one or more tests"
+else
+  irc_msg="all tests passed"
+fi
+irc_msg="mazz basement tests complete [${irc_msg}]: ${LOGS_GITHUB_RESULTS} (test logs directory: ${LOGS_GITHUB})"
+
+echo "Sending IRC notification to room [#${IRC_ROOM}]. msg=${irc_msg}"
 (
 echo 'NICK mazz-basement'
 echo 'USER mazz-basement 8 * : mazz-basement'
 sleep 10
 echo "JOIN #${IRC_ROOM}"
 sleep 5
-echo "PRIVMSG #${IRC_ROOM} : mazz basement tests complete: ${LOGS_GITHUB}"
+echo "PRIVMSG #${IRC_ROOM} : ${irc_msg}"
 echo QUIT
 ) | nc irc.freenode.net 6667
