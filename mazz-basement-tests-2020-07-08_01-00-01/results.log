@@ -1,0 +1,45 @@
+========== SETTINGS ==========
+KIALI_SRC_HOME=/tmp/KIALI-GIT/kiali
+ALL_TESTS=accessible-namespaces-test
+affinity-tolerations-resources-test
+config-values-test
+default-namespace-test
+metrics-test
+null-cr-values-test
+only-view-only-mode-test
+openid-test
+os-console-links-test
+roles-test
+rolling-restart-test
+token-test
+SKIP_TESTS=openid-test
+CLUSTER_TYPE=openshift
+MOLECULE_USE_DEV_IMAGES=false
+MOLECULE_DEBUG=true
+MOLECULE_DESTROY_NEVER=false
+TEST_LOGS_DIR=/home/jmazzite/source/mazz-basement/mazz-basement-tests-2020-07-08_01-00-01
+TEST_CLIENT_EXE=/root/ocp4_setup_ocp4/oc
+COLOR=false
+MINIKUBE_PROFILE=
+==============================
+All molecule test logs will go here: /home/jmazzite/source/mazz-basement/mazz-basement-tests-2020-07-08_01-00-01
+
+=====================
+=== TEST RESULTS: ===
+=====================
+
+              accessible-namespaces-test... success [16m 25s]
+     affinity-tolerations-resources-test... success [13m 52s]
+                      config-values-test... success [10m 47s]
+                  default-namespace-test... success [7m 14s]
+                            metrics-test... success [11m 2s]
+                     null-cr-values-test... success [6m 31s]
+                only-view-only-mode-test... success [11m 10s]
+                             openid-test... skipped
+                   os-console-links-test... success [22m 0s]
+                              roles-test... success [22m 41s]
+                    rolling-restart-test... success [10m 35s]
+                              token-test... success [6m 50s]
+
+Test logs can be found at: /home/jmazzite/source/mazz-basement/mazz-basement-tests-2020-07-08_01-00-01
+
