@@ -22,10 +22,10 @@ SRC="/tmp/KIALI-GIT"
 DORP="${DORP:-podman}"
 
 # if you want to test code from different forks and/or branches, set them here
-KIALI_FORK="${KIALI_FORK:-jmazzitelli}"
-KIALI_BRANCH="${KIALI_BRANCH:-reconcile-watch}"
-KIALI_OPERATOR_FORK="${KIALI_OPERATOR_FORK:-jmazzitelli}"
-KIALI_OPERATOR_BRANCH="${KIALI_OPERATOR_BRANCH:-reconcile-watch}"
+KIALI_FORK="${KIALI_FORK:-kiali}"
+KIALI_BRANCH="${KIALI_BRANCH:-master}"
+KIALI_OPERATOR_FORK="${KIALI_OPERATOR_FORK:-kiali}"
+KIALI_OPERATOR_BRANCH="${KIALI_OPERATOR_BRANCH:-master}"
 
 # the local github repo where the logs are to be stored
 LOGS_SUBDIR="mazz-basement-tests-$(date +'%Y-%m-%d_%H-%M-%S')"
