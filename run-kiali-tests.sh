@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# process command line arguments
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
@@ -16,6 +17,7 @@ done
 # abort on any error
 set -e
 
+# set up some of our known hard-coded locations for things
 ID="/root/ocp4_setup_ocp4/install_dir"
 OC="/root/ocp4_setup_ocp4/oc"
 SRC="/tmp/KIALI-GIT"
@@ -37,6 +39,7 @@ LOGS_GITHUB_RESULTS="https://github.com/jmazzitelli/mazz-basement/tree/master/${
 # the freenode IRC room where notifications are to be sent
 IRC_ROOM="${IRC_ROOM:-kiali}"
 
+# print out our settings for debug purposes
 cat <<EOM
 === CRON JOB SETTINGS ===
 DORP=$DORP
@@ -52,44 +55,6 @@ LOGS_GITHUB_RESULTS=$LOGS_GITHUB_RESULTS
 IRC_ROOM=$IRC_ROOM
 === CRON JOB SETTINGS ===
 EOM
-
-echo "Cleaning any residual Kiali installs that might be hanging around"
-
-delete_namespace_resources() {
-  local selector_expression="$1"
-  echo "Removing namespace-scoped resources with selector [${selector_expression}]..."
-  for r in $($OC get --ignore-not-found=true all,secrets,sa,configmaps,deployments,roles,rolebindings,ingresses --selector="${selector_expression}" --all-namespaces -o custom-columns=NS:.metadata.namespace,K:.kind,N:.metadata.name --no-headers | sed 's/  */:/g')
-  do
-    local res_namespace=$(echo $r | cut -d: -f1)
-    local res_kind=$(echo $r | cut -d: -f2)
-    local res_name=$(echo $r | cut -d: -f3)
-    $OC delete --ignore-not-found=true ${res_kind} ${res_name} -n ${res_namespace}
-  done
-}
-
-delete_cluster_resources() {
-  local selector_expression="$1"
-  echo "Removing cluster-scoped resources with selector [${selector_expression}]..."
-  for r in $($OC get --ignore-not-found=true clusterroles,clusterrolebindings,customresourcedefinitions,oauthclients.oauth.openshift.io,consolelinks.console.openshift.io --selector="${selector_expression}" --all-namespaces -o custom-columns=K:.kind,N:.metadata.name --no-headers | sed 's/  */:/g')
-  do
-    local res_kind=$(echo $r | cut -d: -f1)
-    local res_name=$(echo $r | cut -d: -f2)
-    $OC delete --ignore-not-found=true ${res_kind} ${res_name}
-  done
-}
-
-echo "Remove Kiali CRs..."
-for k in $($OC get kiali --ignore-not-found=true --all-namespaces -o custom-columns=NS:.metadata.namespace,N:.metadata.name --no-headers | sed 's/  */:/g')
-do
-  cr_namespace=$(echo $k | cut -d: -f1)
-  cr_name=$(echo $k | cut -d: -f2)
-  $OC delete --ignore-not-found=true kiali ${cr_name} -n ${cr_namespace}
-done
-
-delete_namespace_resources "app=kiali"
-delete_cluster_resources "app=kiali"
-delete_namespace_resources "app=kiali-operator"
-delete_cluster_resources "app=kiali-operator"
 
 echo "Create a clean github repo location"
 rm -rf /tmp/KIALI-GIT
@@ -110,8 +75,41 @@ cd kiali
 echo "Log into the cluster"
 $OC login -u kubeadmin -p $(cat $ID/auth/kubeadmin-password) https://api.ocp4.local:6443
 
-mkdir -p "${LOGS_LOCAL}"
+echo "Cleaning any residual Kiali installs that might be hanging around"
+delete_namespace_resources() {
+  local selector_expression="$1"
+  echo "Removing namespace-scoped resources with selector [${selector_expression}]..."
+  for r in $($OC get --ignore-not-found=true all,secrets,sa,configmaps,deployments,roles,rolebindings,ingresses --selector="${selector_expression}" --all-namespaces -o custom-columns=NS:.metadata.namespace,K:.kind,N:.metadata.name --no-headers | sed 's/  */:/g')
+  do
+    local res_namespace=$(echo $r | cut -d: -f1)
+    local res_kind=$(echo $r | cut -d: -f2)
+    local res_name=$(echo $r | cut -d: -f3)
+    $OC delete --ignore-not-found=true ${res_kind} ${res_name} -n ${res_namespace}
+  done
+}
+delete_cluster_resources() {
+  local selector_expression="$1"
+  echo "Removing cluster-scoped resources with selector [${selector_expression}]..."
+  for r in $($OC get --ignore-not-found=true clusterroles,clusterrolebindings,customresourcedefinitions,oauthclients.oauth.openshift.io,consolelinks.console.openshift.io --selector="${selector_expression}" --all-namespaces -o custom-columns=K:.kind,N:.metadata.name --no-headers | sed 's/  */:/g')
+  do
+    local res_kind=$(echo $r | cut -d: -f1)
+    local res_name=$(echo $r | cut -d: -f2)
+    $OC delete --ignore-not-found=true ${res_kind} ${res_name}
+  done
+}
+echo "Remove Kiali CRs..."
+for k in $($OC get kiali --ignore-not-found=true --all-namespaces -o custom-columns=NS:.metadata.namespace,N:.metadata.name --no-headers | sed 's/  */:/g')
+do
+  cr_namespace=$(echo $k | cut -d: -f1)
+  cr_name=$(echo $k | cut -d: -f2)
+  $OC delete --ignore-not-found=true kiali ${cr_name} -n ${cr_namespace}
+done
+delete_namespace_resources "app=kiali"
+delete_cluster_resources "app=kiali"
+delete_namespace_resources "app=kiali-operator"
+delete_cluster_resources "app=kiali-operator"
 
+mkdir -p "${LOGS_LOCAL}"
 echo "Running the tests - logs are going here: ${LOGS_LOCAL}"
 hack/run-molecule-tests.sh --client-exe "$OC" --color false --test-logs-dir "${LOGS_LOCAL}" > "${LOGS_LOCAL_RESULTS}"
 
